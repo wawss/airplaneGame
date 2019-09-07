@@ -51,18 +51,18 @@ window.onload = function () {
 
 function Game(ctx, canvasWidth, canvasHeight) {
     var _airplane = new airplane(ctx, canvasWidth, canvasHeight);
-
-    var _monster = new monster(ctx, canvasHeight);
+    var _monster = new monsters(ctx, canvasWidth, canvasHeight);
 
     var timer = null;
     this.isStop = true;
     var draw = function () {
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        //_airplane.run(this.x, this.y, this.isStop);
-        _monster.run(this.x, this.y);
+        _airplane.run(this.x, this.y, this.isStop);
+        _monster.create();
     }
     this.init = function () {
         _airplane.init();
+        _monster.init();
         var self = this;
         timer = requestAnimationFrame(function cb() {
             draw.call(self);
@@ -210,38 +210,67 @@ function bullet(ctx, canvasHeight) {
 }
 
 
-function monster(ctx, canvasHeight) {
-    this.width = 150;
-    this.height = 150;
+function monsters(ctx, canvasWdith, canvasHeight) {
+    this.viruses = [];
+    this.init = function () {
+        let i = 0;
+        while (i < 30) {
+            this.viruses.push(new virus(ctx, canvasWdith, canvasHeight));
+            i += 1;
+        }
+    }
+    this.create = function () {
+        this.viruses.forEach(function (item) {
+            item.run();
+        });
+    }
+}
+
+
+function virus(ctx, canvasWdith, canvasHeight) {
+    this.width = 60 * ratio;
+    this.height = 60 * ratio;
+    this.maxX = canvasWdith - this.width;
+    this.maxY = canvasHeight;
+    this.x_reverse = false;
     this.x = 0;
     this.y = 0;
-    this.t = 0;
-    this.b = 0;
-    this.c = canvasHeight + 200;
-    this.d = 100;
-    this.speed = 1;
+    this.x_t = 0, this.y_t = 0;
+    this.x_b = random(0, canvasWdith), this.y_b = random(-500, -this.width);
+    this.x_c = random(100, 300), this.y_c = random(0, 100);
+    this.x_d = random(10, 100), this.y_d = random(10, 50);
+    this.x_speed = 1, this.y_speed = 1;
 
     this.run = function () {
-        if (!this.x) { this.x = 0; }
-        if (!this.b) {
-            this.b = -200
-        }
-        this.y = Tween.linear(this.t, this.b, this.c, this.d);
-        if (this.t < this.d) {
-            this.t += this.speed;
-            this.draw();
-        } else {
-            this.t = 0;
-            this.x = 0;
-            this.y = 0;
-            this.b = 0;
+        this.y = Tween.linear(this.y_t, this.y_b, this.y_c, this.y_d);
+        this.y_t += this.y_speed;
+        if (this.y > this.maxY) {
+            this.x_b = random(0, canvasWdith), this.y_b = random(-500, -this.width);
+            this.x_c = random(100, 300), this.y_c = random(0, 100);
+            this.x_d = random(10, 50), this.y_d = random(10, 20);
+            this.x_t = 0;
+            this.y_t = 0;
             this.visible = false;
-        }
+        } else {
+            this.x = Tween.linear(this.x_t, this.x_b, this.x_c, this.x_d);
+            if (this.x >= this.maxX) {
+                this.x_reverse = true;
+            } else if (this.x <= 0) {
+                this.x_reverse = false;
+            }
+            if (!this.x_reverse) {
+                this.x_t += this.x_speed;
 
+            } else {
+                this.x_t -= this.x_speed;
+            }
+            this.draw();
+        }
     }
     this.draw = function () {
         var imgObj = getRes('monsterImg');
         ctx.drawImage(imgObj, this.x, this.y, this.width, this.height);
+
     }
 }
 
@@ -271,6 +300,9 @@ function loadres(cb) {
 }
 
 
+function random(min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
+}
 
 function getRes(key) {
     var item = res.find(function (findItem) { return findItem.key === key; });
