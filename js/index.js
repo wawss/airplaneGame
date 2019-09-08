@@ -59,14 +59,17 @@ function Game(ctx, canvasWidth, canvasHeight) {
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         _airplane.run(this.x, this.y, this.isStop);
         _monster.create();
+        if (checkCollision(_monster.viruses, _airplane.bulletList, _airplane)) {
+            console.log('游戏结束');
+        }
     }
     this.init = function () {
         _airplane.init();
         _monster.init();
         var self = this;
-        timer = requestAnimationFrame(function cb() {
+        this.timer = requestAnimationFrame(function cb() {
             draw.call(self);
-            timer = requestAnimationFrame(cb);
+            requestAnimationFrame(cb);
         });
     }
     this.start = function (x, y) {
@@ -92,12 +95,12 @@ function Game(ctx, canvasWidth, canvasHeight) {
 
 
 function airplane(ctx, canvasWidth, canvasHeight) {
-    var width = 50 * ratio, height = 50 * ratio, halfWidth = width * 0.64;
+    this.width = Math.ceil(50 * ratio), this.height = Math.ceil(50 * ratio), halfWidth = this.width * 0.64;
 
-    this.maxOutWidth = canvasWidth - width * 0.40;
-    this.minOutWidth = 0 - width * 0.60;
+    this.maxOutWidth = canvasWidth - this.width * 0.40;
+    this.minOutWidth = 0 - this.width * 0.60;
     this.minOutHeight = 0;
-    this.maxOutHeight = canvasHeight - height * 0.70;
+    this.maxOutHeight = canvasHeight - this.height * 0.70;
 
     this.x = 0, this.y = 0, this.prevX = 0, this.prevY = 0;
     this.bulletList = [];
@@ -109,8 +112,8 @@ function airplane(ctx, canvasWidth, canvasHeight) {
             this.bulletList.push(new bullet(ctx, canvasHeight));
             i += 1;
         }
-        this.x = (canvasWidth - width) / 2;
-        this.y = (canvasHeight - height) * 0.9;
+        this.x = (canvasWidth - this.width) / 2;
+        this.y = (canvasHeight - this.height) * 0.9;
         draw.call(this);
     }
     this.setMovePrev = function (x, y) {
@@ -137,7 +140,7 @@ function airplane(ctx, canvasWidth, canvasHeight) {
     }
     function draw() {
         var imgObj = getRes('airplaneImg');
-        ctx.drawImage(imgObj, this.x, this.y, width, height);
+        ctx.drawImage(imgObj, this.x, this.y, this.width, this.height);
     }
     this.run = function (x, y, isStop) {
         if (!isStop) {
@@ -175,7 +178,7 @@ function airplane(ctx, canvasWidth, canvasHeight) {
 
 
 function bullet(ctx, canvasHeight) {
-    var width = 50; height = 50;
+    this.width = 50; this.height = 50;
     this.x = 0,
         this.y = 0,
         this.t = 0,
@@ -191,7 +194,7 @@ function bullet(ctx, canvasHeight) {
         if (!this.b) {
             this.b = this.y;
         }
-        this.y = Tween.linear(this.t, this.b, this.c, this.d);
+        this.y = Math.ceil(Tween.linear(this.t, this.b, this.c, this.d));
         if (this.t < this.d) {
             this.t += this.speed;
             this.draw(this.x, this.y);
@@ -205,7 +208,7 @@ function bullet(ctx, canvasHeight) {
     }
     this.draw = function (x, y) {
         var imgObj = getRes('airplaneImg');
-        ctx.drawImage(imgObj, x, y, width, height);
+        ctx.drawImage(imgObj, x, y, this.width, this.height);
     }
 }
 
@@ -214,7 +217,7 @@ function monsters(ctx, canvasWdith, canvasHeight) {
     this.viruses = [];
     this.init = function () {
         let i = 0;
-        while (i < 30) {
+        while (i < 50) {
             this.viruses.push(new virus(ctx, canvasWdith, canvasHeight));
             i += 1;
         }
@@ -228,8 +231,8 @@ function monsters(ctx, canvasWdith, canvasHeight) {
 
 
 function virus(ctx, canvasWdith, canvasHeight) {
-    this.width = 60 * ratio;
-    this.height = 60 * ratio;
+    this.width = Math.ceil(60 * ratio);
+    this.height = Math.ceil(60 * ratio);
     this.maxX = canvasWdith - this.width;
     this.maxY = canvasHeight;
     this.x_reverse = false;
@@ -242,30 +245,37 @@ function virus(ctx, canvasWdith, canvasHeight) {
     this.x_speed = 1, this.y_speed = 1;
 
     this.run = function () {
-        this.y = Tween.linear(this.y_t, this.y_b, this.y_c, this.y_d);
-        this.y_t += this.y_speed;
-        if (this.y > this.maxY) {
-            this.x_b = random(0, canvasWdith), this.y_b = random(-500, -this.width);
-            this.x_c = random(100, 300), this.y_c = random(0, 100);
-            this.x_d = random(10, 50), this.y_d = random(10, 20);
-            this.x_t = 0;
-            this.y_t = 0;
-            this.visible = false;
-        } else {
-            this.x = Tween.linear(this.x_t, this.x_b, this.x_c, this.x_d);
-            if (this.x >= this.maxX) {
-                this.x_reverse = true;
-            } else if (this.x <= 0) {
-                this.x_reverse = false;
-            }
-            if (!this.x_reverse) {
-                this.x_t += this.x_speed;
-
+        if (this.visible) {
+            this.y = Math.ceil(Tween.linear(this.y_t, this.y_b, this.y_c, this.y_d));
+            this.y_t += this.y_speed;
+            if (this.y > this.maxY) {
+                this.rest();
             } else {
-                this.x_t -= this.x_speed;
+                this.x = Math.ceil(Tween.linear(this.x_t, this.x_b, this.x_c, this.x_d));
+                if (this.x >= this.maxX) {
+                    this.x_reverse = true;
+                } else if (this.x <= 0) {
+                    this.x_reverse = false;
+                }
+                if (!this.x_reverse) {
+                    this.x_t += this.x_speed;
+
+                } else {
+                    this.x_t -= this.x_speed;
+                }
+                this.draw();
             }
-            this.draw();
+        } else {
+            this.rest();
+            this.visible = true;
         }
+    }
+    this.rest = function () {
+        this.x_b = random(0, canvasWdith), this.y_b = random(-500, -this.width);
+        this.x_c = random(100, 300), this.y_c = random(0, 100);
+        this.x_d = random(10, 50), this.y_d = random(10, 20);
+        this.x_t = 0;
+        this.y_t = 0;
     }
     this.draw = function () {
         var imgObj = getRes('monsterImg');
@@ -297,6 +307,26 @@ function loadres(cb) {
             }
         });
     }
+}
+
+
+function checkCollision(monsters, bullets, airplane) {
+    var over = false;
+    monsters.forEach(function (monsterItem) {
+        if (rectCollision(monsterItem, airplane)) { over = true; return false; }
+        bullets.forEach(function (bulletItem) {
+            if (bulletItem.visible) {
+                if (rectCollision(monsterItem, bulletItem)) {
+                    monsterItem.visible = false;
+                }
+            }
+        });
+    });
+    return over;
+}
+
+function rectCollision(a, b) {
+    return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.height + a.y > b.y;
 }
 
 
